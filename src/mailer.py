@@ -1,18 +1,7 @@
-import datetime, locale, os
+import os, logging
 from email.message import EmailMessage
 from smtplib import SMTP, SMTP_SSL
-
-def get_curr_month():
-    try:
-        locale.setlocale(locale.LC_TIME, 'pt_BR.UTF-8')
-    except locale.Error:
-        try:
-            locale.setlocale(locale.LC_TIME, 'Portuguese_Brazil')
-        except locale.Error:
-            print("Locale 'pt_BR.UTF-8' ou 'Portuguese_Brazil' não encontrado. Usando locale padrão.")
-
-    now = datetime.datetime.now()
-    return now.strftime('%B')
+from src.utils import get_curr_month
 
 def create_message(file_path, sender, receiver):
     month = get_curr_month()
@@ -39,13 +28,15 @@ def send_mail(file_path):
     sender = os.getenv("EMAIL_REMETENTE")
     password = os.getenv("SENHA_REMETENTE")
     receiver = os.getenv("EMAIL_DESTINATARIO")
+    logging.info("Creating email message...")
     message = create_message(file_path, sender, receiver)
+    logging.info("Message created successfully. Now attempting to send email...")
 
     try:
         with SMTP_SSL('smtp.gmail.com', 465) as smtp:
             smtp.login(sender, password) # type: ignore
             smtp.send_message(message)
-        print("E-mail enviado com sucesso.")
+        logging.info("Email sent. Now Closing the application.")
     except Exception as e:
-        print(f"Falha ao enviar e-mail: {e}")
+        logging.error("Failed to send email. Log: ", exc_info=e)
         raise
