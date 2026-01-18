@@ -1,4 +1,4 @@
-import requests, os
+import requests, os, sys
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.common.by import By
@@ -7,30 +7,28 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 
-driver = webdriver.Firefox()
-
-def set_driver_options():
+def set_download_path():
     download_path = os.path.join(os.getcwd(), "downloads")
     if not os.path.exists(download_path):
         os.makedirs(download_path)
 
+    download_path = os.path.join(os.getcwd(), "downloads")
+    if not os.path.exists(download_path):
+        os.makedirs(download_path)
+    return download_path
+
+def download_boleto(download_path, cpf):
     options = Options()
-    options.add_argument("--headless")
-
-    download_path = os.path.join(os.getcwd(), "downloads")
-    if not os.path.exists(download_path):
-        os.makedirs(download_path)
-
+    options.add_argument("--headless") 
     driver = webdriver.Firefox(options=options)
-    return driver, download_path
 
-def download_boleto(driver, download_path):
     driver.get("https://irm.sgp.net.br/accounts/central/login")
     current_url = driver.current_url
     visited_tabs = []
     visited_tabs.append(driver.current_window_handle)
+
     cpf_field = driver.find_element(By.ID, "cpfcnpj")
-    cpf_field.send_keys("06996367522")
+    cpf_field.send_keys(cpf)
     cpf_field.send_keys(Keys.RETURN)
 
     try:
@@ -44,6 +42,7 @@ def download_boleto(driver, download_path):
     except TimeoutException:
         print(f"Couldn't login properly. Try manually later.")
         driver.quit()
+        sys.exit(1)
 
     try:
             WebDriverWait(driver, 5).until(EC.number_of_windows_to_be(2))
@@ -60,6 +59,7 @@ def download_boleto(driver, download_path):
     except TimeoutException:
         print(f"Couldn't open link. Try manually later.")
         driver.quit()
+        sys.exit(1)
 
     try:
         WebDriverWait(driver, 5).until(EC.number_of_windows_to_be(3))
@@ -80,13 +80,11 @@ def download_boleto(driver, download_path):
                     pdf_file.write(chunk)
             
             print(f"Boleto salvo em: {full_path}")
+            driver.quit()
             return full_path
         except Exception as e:
             print(f"Erro ao baixar o PDF: {e}")
     except:
         print("Something went wrong.")
         driver.quit()
-
-(driver, download_path) = set_driver_options()
-download_boleto(driver, download_path)
-driver.quit()
+        sys.exit(1)
